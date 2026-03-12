@@ -27,7 +27,7 @@ module.exports = {
         'patterns': ['^@mui/*/*/*']
       }
     ],
-    //ommon
+    //Common
     'no-console': 1,
     'no-lonely-if': 1,
     'no-unused-vars': 1,
