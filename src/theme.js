@@ -3,6 +3,10 @@ import { teal, deepOrange, cyan, orange } from '@mui/material/colors'
 
 // Create a theme instance.
 const theme = extendTheme({
+  worktrackCustom: {
+    appBarHeight: '48px',
+    boardBarHeight: '58px'
+  },
   colorSchemes: {
     light: {
       palette: {
@@ -13,7 +17,7 @@ const theme = extendTheme({
     dark: {
       palette: {
         primary: cyan,
-        secondary:orange
+        secondary: orange
       }
     }
   }
