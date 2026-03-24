@@ -1,7 +1,7 @@
 export const mockData = {
   board: {
     _id: 'board-id-01',
-    title: 'Work Track Board',
+    title: 'Work Track Board - Tien Pham',
     description: 'Course',
     type: 'public', // 'private'
     ownerIds: [], // Những users là Admin của board
