@@ -21,8 +21,9 @@ function Templates() {
   return (
     <Box>
       <Button
-        id="basic-button-templates"
-        aria-controls={open ? 'basic-menu-templates' : undefined}
+        sx={{ color: 'white' }}
+        id="basic-button-starred"
+        aria-controls={open ? 'basic-menu-starred' : undefined}
         aria-haspopup="true"
         aria-expanded={open ? 'true' : undefined}
         onClick={handleClick}
@@ -31,12 +32,12 @@ function Templates() {
         Templates
       </Button>
       <Menu
-        id="basic-menu-templates"
+        id="basic-menu-starred"
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
         MenuListProps={{
-          'aria-labelledby': 'basic-button-templates'
+          'aria-labelledby': 'basic-button-starred'
         }}
       >
         <MenuItem>
