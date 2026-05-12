@@ -1,7 +1,20 @@
 import Box from '@mui/material/Box'
 import ListColumns from './ListColumns/ListColumns'
 import { mapOrder } from '~/utils/sorts'
-import { DndContext, useSensor, useSensors, MouseSensor, TouchSensor, DragOverlay, defaultDropAnimationSideEffects, closestCorners, closestCenter, pointerWithin, rectIntersection, getFirstCollision } from '@dnd-kit/core'
+import {
+  DndContext,
+  useSensor,
+  useSensors,
+  MouseSensor,
+  TouchSensor,
+  DragOverlay,
+  defaultDropAnimationSideEffects,
+  closestCorners,
+  //closestCenter,
+  pointerWithin,
+  //rectIntersection,
+  getFirstCollision
+} from '@dnd-kit/core'
 import { useEffect, useState, useCallback, useRef } from 'react'
 import { arrayMove } from '@dnd-kit/sortable'
 import Column from './ListColumns/Column/Column'
@@ -249,23 +262,27 @@ function BoardContent({ board }) {
       return closestCorners({ ...args })
     }
 
-    //tim  cac diem giao nhau giua card dang keo va cac card khac, column khac
+    //tim  cac diem giao nhau giua card dang keo va cac card khac, column khac, tra ve 1 mang cac va cham
     const pointerIntersections = pointerWithin(args)
 
-    //thuat toan phat hien va cham se tra ve 1 mang cac va cham o day
-    const intersections = !!pointerIntersections?.length
-      ? pointerIntersections
-      : rectIntersection(args)
+    //neu pointerIntersections la mang rong, return luon, ko lam gi het
+    //fix bug flickering cua thu vien dnd-kit trong truong hop sau: keo tha 1 card co image cover lon va keo len phia tren cung, ra khoi khu vuc keo tha
+    if (!pointerIntersections?.length) return
 
-    //tim overId dau tien trong dam intersections o tren
-    let overId = getFirstCollision(intersections, 'id')
+    //thuat toan phat hien va cham se tra ve 1 mang cac va cham o day (ko can buoc nay nua)
+    // const intersections = !!pointerIntersections?.length
+    //   ? pointerIntersections
+    //   : rectIntersection(args)
+
+    //tim overId dau tien trong dam pointerIntersections o tren
+    let overId = getFirstCollision(pointerIntersections, 'id')
 
     if (overId) {
       //neu cai over la column thi se tim toi cardId gan nhat ben trong khu vuc va cham do dua vao thuat toan phat hien va cham closestCenter hoac closestCorners deu duoc, tuy nhien dung closestCenter muot ma hon
       const checkColumn = orderedColumns.find(column => column._id === overId)
       if (checkColumn) {
         // console.log('overId before: ', overId)
-        overId = closestCenter({
+        overId = closestCorners({
           ...args,
           droppableContainers: args.droppableContainers.filter(container => {
             return (container.id !== overId) && (checkColumn?.cardOrderIds?.includes(container.id))
