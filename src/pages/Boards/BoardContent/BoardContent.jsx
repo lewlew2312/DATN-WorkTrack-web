@@ -53,13 +53,13 @@ function BoardContent({ board }) {
     setOrderedColumns(mapOrder(board?.columns, board?.columnOrderIds, '_id'))
   }, [board])
 
-  //tim 1 column theo cardId
+  //ham tim 1 column theo cardId
   const findColumnByCardId = (cardId) => {
     //nen dung c.cards thay vi c.cardOrderIds vi o buoc handleDragOver se lam du lieu cho cards hoan chinh truoc roi moi tao ra cardOrderIds moi
     return orderedColumns.find(column => column?.cards?.map(card => card._id)?.includes(cardId))
   }
 
-  //function chung xu ly viec cap nhat lai state trong truong hop di chuyem Card giua cac Cloumn khac nhau
+  //ham chung xu ly viec cap nhat lai state trong truong hop di chuyem Card giua cac Cloumn khac nhau
   const moveCardBetweenDifferentColumns = (
     overColumn,
     overCardId,
@@ -123,7 +123,7 @@ function BoardContent({ board }) {
     })
   }
 
-  //Trigger khi bat dau keo 1 phan tu
+  //ham Trigger khi bat dau keo 1 phan tu
   const handleDragStart = (event) => {
     // console.log('handleDragEnd: ', event)
     setActiveDragItemId(event?.active?.id)
@@ -135,7 +135,8 @@ function BoardContent({ board }) {
       setOldColumnWhenDraggingCard(findColumnByCardId(event?.active?.id))
     }
   }
-  // Trigger trong qua trinh keo
+
+  //ham Trigger trong qua trinh keo
   const handleDragOver = (event) => {
     // Ko lam gi them neu dang keo column
     if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) return
@@ -171,7 +172,7 @@ function BoardContent({ board }) {
     }
   }
 
-  //Trigger khi ket thuc keo 1 phan tu -> tha phan tu do
+  //ham Trigger khi ket thuc keo 1 phan tu -> tha phan tu do
   const handleDragEnd = (event) => {
     // console.log('handleDragEnd: ', event)
 
