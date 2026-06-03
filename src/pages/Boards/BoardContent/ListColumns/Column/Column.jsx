@@ -25,7 +25,7 @@ import TextField from '@mui/material/TextField'
 import CloseIcon from '@mui/icons-material/Close'
 // import { Height, Opacity } from '@mui/icons-material'
 
-function Column({ column }) {
+function Column({ column, createNewCard }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: column._id,
     data: { ...column }
@@ -53,14 +53,22 @@ function Column({ column }) {
 
   const [newCardTitle, setNewCardTitle] = useState('')
 
-  const addNewCard = () => {
+  const addNewCard = async () => {
     if (!newCardTitle) {
       toast.error('Please enter Card Title!', { position: 'bottom-right' })
       return
     }
 
-    // console.log(newCardTitle)
-    //Goi API o day
+    // Tao du lieu Card de goi API
+    const newCardData = {
+      title: newCardTitle,
+      columnId: column._id
+    }
+
+    //Goi len props function createNewColumn nam o component cha cao nhat (boards/_id.jsx)
+    //Va co the goi luon API o day la xong thay vi phai lan luot goi nguoc lai component cha phia tren
+    //Se su dung redux sau nay de code clean hon
+    await createNewCard(newCardData)
 
     // Dong trang thai them Card moi & Clear Input
     toggleOpenNewCardForm()
@@ -160,7 +168,7 @@ function Column({ column }) {
             }}>
               <Button startIcon={<AddCardIcon />} onClick={toggleOpenNewCardForm}>Add new Card</Button>
               <Tooltip title="Drag to move">
-                <DragHandleIcon sx={{ cursor: 'pointer' }}/>
+                <DragHandleIcon sx={{ cursor: 'pointer' }} />
               </Tooltip>
             </Box>
             : <Box sx={{
