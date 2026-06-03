@@ -8,20 +8,27 @@ import TextField from '@mui/material/TextField'
 import CloseIcon from '@mui/icons-material/Close'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
 
-function ListColumns({ columns }) {
+function ListColumns({ columns, createNewColumn, createNewCard }) {
   const [openNewColumnForm, setOpenNewColumnForm] = useState(false)
   const toggleOpenNewColumnForm = () => setOpenNewColumnForm(!openNewColumnForm)
 
   const [newColumnTitle, setNewColumnTitle] = useState('')
 
-  const addNewColumn = () => {
+  const addNewColumn = async () => {
     if (!newColumnTitle) {
       toast.error('Please enter Column Title!')
       return
     }
 
-    // console.log(newColumnTitle)
-    //Goi API o day
+    // Tao du lieu de goi API
+    const newColumnData = {
+      title: newColumnTitle
+    }
+
+    //Goi len props function createNewColumn nam o component cha cao nhat (boards/_id.jsx)
+    //Va co the goi luon API o day la xong thay vi phai lan luot goi nguoc lai component cha phia tren
+    // Se su dung redux sau nay de code clean hon
+    await createNewColumn(newColumnData)
 
     // Dong trang thai them Column moi & Clear Input
     toggleOpenNewColumnForm()
@@ -40,7 +47,7 @@ function ListColumns({ columns }) {
         overflowY: 'hidden',
         '&::-webkit-scrollbar-track': { m:2 }
       }}>
-        {columns?.map(column => <Column key={column._id} column={column} />)}
+        {columns?.map(column => <Column key={column._id} column={column} createNewCard={createNewCard} />)}
         {/* Box Add new column */}
         {!openNewColumnForm
           ? <Box onClick={toggleOpenNewColumnForm} sx={{

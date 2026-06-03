@@ -5,8 +5,23 @@ import { API_ROOT } from '~/utils/constants'
 //Giai phap la se catch loi tap trung tai 1 noi bang cach tan dung Interceptors trong axios
 // Interceptors la cach danh chan giua cac request hoac response de xu ly logic ma minh muon
 
+// Boards
 export const fetchBoardDetailsAPI = async (boardId) => {
   const response = await axios.get(`${API_ROOT}/v1/boards/${boardId}`)
+  //LUU Y: axios se tra ve ket qua qua property cua no la data
+  return response.data
+}
+
+// Columns
+export const createNewColumnAPI = async (newColumnData) => {
+  const response = await axios.post(`${API_ROOT}/v1/columns`, newColumnData)
+  //LUU Y: axios se tra ve ket qua qua property cua no la data
+  return response.data
+}
+
+// Cards
+export const createNewCardAPI = async (newCardData) => {
+  const response = await axios.post(`${API_ROOT}/v1/cards`, newCardData)
   //LUU Y: axios se tra ve ket qua qua property cua no la data
   return response.data
 }
