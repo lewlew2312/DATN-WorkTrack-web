@@ -28,7 +28,7 @@ const ACTIVE_DRAG_ITEM_TYPE = {
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
 }
 
-function BoardContent({ board, createNewColumn, createNewCard }) {
+function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
 
   // const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
   //yeu cau chuot di chuyen 10px moi goi event, fix truong hop click, ko keo tha, bi goi event
@@ -242,11 +242,11 @@ function BoardContent({ board, createNewColumn, createNewCard }) {
         const newColumnIndex = orderedColumns.findIndex(c => c._id === over.id)
         //arrayMove de sap xep lai mang Column ban dau
         const dndOrderedColumns = arrayMove(orderedColumns, oldColumnIndex, newColumnIndex)
-        // 2 console.log de dugn de xu ly goi API
-        // const dndOrderedColumnsIds = dndOrderedColumns.map(c => c._id)
-        // console.log('dndOrderedColumns: ', dndOrderedColumns)
-        // console.log('dndOrderedColumnsIds: ', dndOrderedColumnsIds)
-        // cap nhat lai state columns ban dau sau khi da keo tha
+        // Goi len props function moveColumns nam o component cha cao nhat (_id.jsx)
+        // Se dung redux ve sau de code clean va chuan chinh hon
+        moveColumns(dndOrderedColumns)
+
+        // Van dung cap nhat lai state columns ban dau sau khi da keo tha de tranh delay hoac flickering giao dien luc keo tha can phai cho doi API
         setOrderedColumns(dndOrderedColumns)
       }
     }
