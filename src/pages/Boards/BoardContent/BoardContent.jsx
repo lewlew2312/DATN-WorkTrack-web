@@ -1,6 +1,5 @@
 import Box from '@mui/material/Box'
 import ListColumns from './ListColumns/ListColumns'
-import { mapOrder } from '~/utils/sorts'
 import {
   DndContext,
   useSensor,
@@ -28,7 +27,14 @@ const ACTIVE_DRAG_ITEM_TYPE = {
   CARD: 'ACTIVE_DRAG_ITEM_TYPE_CARD'
 }
 
-function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
+function BoardContent({
+  board,
+  createNewColumn,
+  createNewCard,
+  moveColumns,
+  moveCardInTheSameColumn,
+  moveCardToDifferentColumn
+}) {
 
   // const pointerSensor = useSensor(PointerSensor, { activationConstraint: { distance: 10 } })
   //yeu cau chuot di chuyen 10px moi goi event, fix truong hop click, ko keo tha, bi goi event
@@ -51,7 +57,8 @@ function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
   const lastOverId = useRef(null)
 
   useEffect(() => {
-    setOrderedColumns(mapOrder(board?.columns, board?.columnOrderIds, '_id'))
+    // Columns da dc sap xep o component cha cao nhat (_id.jsx)
+    setOrderedColumns(board.columns)
   }, [board])
 
   //ham tim 1 column theo cardId
@@ -60,7 +67,7 @@ function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
     return orderedColumns.find(column => column?.cards?.map(card => card._id)?.includes(cardId))
   }
 
-  //ham chung xu ly viec cap nhat lai state trong truong hop di chuyem Card giua cac Cloumn khac nhau
+  //Khoi tao ham chung xu ly viec cap nhat lai state trong truong hop di chuyem Card giua cac Cloumn khac nhau
   const moveCardBetweenDifferentColumns = (
     overColumn,
     overCardId,
@@ -68,7 +75,8 @@ function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
     over,
     activeColumn,
     activeDraggingCardId,
-    activeDraggingCardData
+    activeDraggingCardData,
+    triggerFrom
   ) => {
     setOrderedColumns(prevColumns => {
       //tim vi tri index cua overCard trong column dich den (noi activeCard sap duoc tha)
@@ -120,6 +128,19 @@ function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
         nextOverColumn.cardOrderIds = nextOverColumn.cards.map(card => card._id)
       }
 
+      // neu function nay duoc goi tu handleDragEnd nghia la da keo tha xong, luc nay moi xu ly goi API 1 lan o day
+      if (triggerFrom === 'handleDragEnd') {
+        // Goi len function moveCardToDifferentColumn nam o component cha cao nhat (_id.jsx)
+        // Se dung redux ve sau de code clean va chuan chinh hon
+        // Phai dung toi activveDraggingItemData.columnId hoac tot nhat la oldColumnWhenDraggingCard._id (set vao state tu buoc handleDragStart) chu ko phai activeData trong scope handleDragEnd nay vi sau khi di qua onDragOver toi day la state cua card da cap nhat 1 lan roi
+        moveCardToDifferentColumn(
+          activeDraggingCardId,
+          oldColumnWhenDraggingCard._id,
+          nextOverColumn._id,
+          nextColumns
+        )
+      }
+
       return nextColumns
     })
   }
@@ -137,7 +158,7 @@ function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
     }
   }
 
-  //ham Trigger trong qua trinh keo
+  //ham Trigger trong qua trinh keo 1 phan tu
   const handleDragOver = (event) => {
     // Ko lam gi them neu dang keo column
     if (activeDragItemType === ACTIVE_DRAG_ITEM_TYPE.COLUMN) return
@@ -168,7 +189,8 @@ function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
         over,
         activeColumn,
         activeDraggingCardId,
-        activeDraggingCardData
+        activeDraggingCardData,
+        'handleDragOver'
       )
     }
   }
@@ -205,10 +227,12 @@ function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
           over,
           activeColumn,
           activeDraggingCardId,
-          activeDraggingCardData
+          activeDraggingCardData,
+          'handleDragEnd'
         )
       } else {
         //Hanh dong keo tha card trong cung 1 column
+
         // lay vi tri cu (tu oldColumnWhenDraggingCard)
         const oldCardIndex = oldColumnWhenDraggingCard?.cards?.findIndex(c => c._id === activeDragItemId)
         // lay vi tri moi (tu overColumn)
@@ -216,18 +240,24 @@ function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
 
         //Dung arrayMove vi keo card trong 1 column thi tuong tu voi logic keo cloumn trong 1 board content
         const dndOrderedCards = arrayMove(oldColumnWhenDraggingCard?.cards, oldCardIndex, newCardIndex)
+        const dndOrderedCardsIds = dndOrderedCards.map(card => card._id)
 
+        // Van goi update State o day de tranh delay hoac Flickering giao dien luc keo tha can phai cho goi API
         setOrderedColumns(prevColumns => {
           //clone mang orderedColumnState cu ra 1 cai moi de xu ly data roi return va cap nhat lai orderedColumnState moi
           const nextColumns = cloneDeep(prevColumns)
           //Tim toi column ma chung ta dang keo tha
           const targetColumn = nextColumns.find(column => column._id === overColumn._id)
           targetColumn.cards = dndOrderedCards
-          targetColumn.cardOrderIds = dndOrderedCards.map(card => card._id)
+          targetColumn.cardOrderIds = dndOrderedCardsIds
 
           //tra ve gia tri state moi chuan vi tri
           return nextColumns
         })
+
+        // Goi len props function moveCardInTheSameColumn nam o component cha cao nhat (_id.jsx)
+        // Se dung redux ve sau de code clean va chuan chinh hon
+        moveCardInTheSameColumn(dndOrderedCards, dndOrderedCardsIds, oldColumnWhenDraggingCard._id)
       }
 
     }
@@ -242,12 +272,11 @@ function BoardContent({ board, createNewColumn, createNewCard, moveColumns }) {
         const newColumnIndex = orderedColumns.findIndex(c => c._id === over.id)
         //arrayMove de sap xep lai mang Column ban dau
         const dndOrderedColumns = arrayMove(orderedColumns, oldColumnIndex, newColumnIndex)
+        // Van dung cap nhat lai state columns ban dau sau khi da keo tha de tranh delay hoac flickering giao dien luc keo tha can phai cho doi API
+        setOrderedColumns(dndOrderedColumns)
         // Goi len props function moveColumns nam o component cha cao nhat (_id.jsx)
         // Se dung redux ve sau de code clean va chuan chinh hon
         moveColumns(dndOrderedColumns)
-
-        // Van dung cap nhat lai state columns ban dau sau khi da keo tha de tranh delay hoac flickering giao dien luc keo tha can phai cho doi API
-        setOrderedColumns(dndOrderedColumns)
       }
     }
 

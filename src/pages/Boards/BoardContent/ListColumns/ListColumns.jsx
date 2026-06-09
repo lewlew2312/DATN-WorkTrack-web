@@ -14,7 +14,7 @@ function ListColumns({ columns, createNewColumn, createNewCard }) {
 
   const [newColumnTitle, setNewColumnTitle] = useState('')
 
-  const addNewColumn = async () => {
+  const addNewColumn = () => {
     if (!newColumnTitle) {
       toast.error('Please enter Column Title!')
       return
@@ -28,7 +28,7 @@ function ListColumns({ columns, createNewColumn, createNewCard }) {
     //Goi len props function createNewColumn nam o component cha cao nhat (boards/_id.jsx)
     //Va co the goi luon API o day la xong thay vi phai lan luot goi nguoc lai component cha phia tren
     // Se su dung redux sau nay de code clean hon
-    await createNewColumn(newColumnData)
+    createNewColumn(newColumnData)
 
     // Dong trang thai them Column moi & Clear Input
     toggleOpenNewColumnForm()
