@@ -7,14 +7,25 @@ import NoteAddIcon from '@mui/icons-material/NoteAdd'
 import TextField from '@mui/material/TextField'
 import CloseIcon from '@mui/icons-material/Close'
 import { SortableContext, horizontalListSortingStrategy } from '@dnd-kit/sortable'
+import { createNewColumnAPI } from '~/apis'
+import { generatePlaceholderCard } from '~/utils/formatters'
+import {
+  updateCurrentActiveBoard,
+  selectCurrentActiveBoard
+} from '~/redux/activeBoard/activeBoardSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { cloneDeep } from 'lodash'
 
-function ListColumns({ columns, createNewColumn, createNewCard, deleteColumnDetails }) {
+function ListColumns({ columns }) {
+  const dispatch = useDispatch()
+  const board = useSelector(selectCurrentActiveBoard)
+
   const [openNewColumnForm, setOpenNewColumnForm] = useState(false)
   const toggleOpenNewColumnForm = () => setOpenNewColumnForm(!openNewColumnForm)
 
   const [newColumnTitle, setNewColumnTitle] = useState('')
 
-  const addNewColumn = () => {
+  const addNewColumn = async () => {
     if (!newColumnTitle) {
       toast.error('Please enter Column Title!')
       return
@@ -25,10 +36,31 @@ function ListColumns({ columns, createNewColumn, createNewCard, deleteColumnDeta
       title: newColumnTitle
     }
 
-    //Goi len props function createNewColumn nam o component cha cao nhat (boards/_id.jsx)
-    //Va co the goi luon API o day la xong thay vi phai lan luot goi nguoc lai component cha phia tren
-    // Se su dung redux sau nay de code clean hon
-    createNewColumn(newColumnData)
+    // Goi API tao moi Column va lam lai du lieu State Board
+    const createdColumn = await createNewColumnAPI({
+      ...newColumnData,
+      boardId: board._id
+    })
+    // Khi tao column moi no se chua co card, can xu ly van de keo tha vao 1 column rong
+    createdColumn.cards = [generatePlaceholderCard(createdColumn)]
+    createdColumn.cardOrderIds = [generatePlaceholderCard(createdColumn)._id]
+
+    //Cap nhat state board
+    // FE phai tu lam dung lai state data board (thay vi goi lai api fetchBoardDetailsAPI)
+
+    // Doan nay se bi loi object is not extensible boi du da copy/clone ra gia tri newBoard nhung ban chat cua spread operator la Shallow Copy/Clone, nen bi rules Immutability trong Redux Toolkit khong dung duoc ham PUSH (sua gia tri mang truc tiep), cach don gian va nhanh gon nhat la dunG Deep Copy/ Clone toan bo Board
+    // const newBoard = { ...board }
+    const newBoard = cloneDeep(board)
+    newBoard.columns.push(createdColumn)
+    newBoard.columnOrderIds.push(createdColumn._id)
+
+    // Ngoai ra con 1 cach la van co the dung array.concat thay cho push nhu docs cua Redux Toolkit vi push se thay doi gia tri mang truc tiep, concat thi se merge - ghep mang lai va tao thanh 1 mang moi de gan lai gia tri
+    // const newBoard = { ...board }
+    // newBoard.columns = newBoard.columns.concat([createdColumn])
+    // newBoard.columnOrderIds = newBoard.columnOrderIds.concat([createdColumn._id])
+
+    // Cap nhat du lieu Board vao trong Redux Store
+    dispatch(updateCurrentActiveBoard(newBoard))
 
     // Dong trang thai them Column moi & Clear Input
     toggleOpenNewColumnForm()
@@ -47,12 +79,9 @@ function ListColumns({ columns, createNewColumn, createNewCard, deleteColumnDeta
         overflowY: 'hidden',
         '&::-webkit-scrollbar-track': { m:2 }
       }}>
-        {columns?.map(column => <Column
-          key={column._id}
-          column={column}
-          createNewCard={createNewCard}
-          deleteColumnDetails={deleteColumnDetails}
-        />)}
+        {columns?.map(column =>
+          <Column key={column._id} column={column} />
+        )}
         {/* Box Add new column */}
         {!openNewColumnForm
           ? <Box onClick={toggleOpenNewColumnForm} sx={{
@@ -109,6 +138,7 @@ function ListColumns({ columns, createNewColumn, createNewCard, deleteColumnDeta
             />
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Button
+                className="interceptor-loading"
                 onClick={addNewColumn}
                 variant="contained" color="success" size="small"
                 sx={{

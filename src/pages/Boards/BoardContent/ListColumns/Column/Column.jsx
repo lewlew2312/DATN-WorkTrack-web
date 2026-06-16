@@ -24,8 +24,18 @@ import TextField from '@mui/material/TextField'
 import CloseIcon from '@mui/icons-material/Close'
 import { useConfirm } from 'material-ui-confirm'
 // import { Height, Opacity } from '@mui/icons-material'
+import { createNewCardAPI, deleteColumnDetailsAPI } from '~/apis'
+import {
+  updateCurrentActiveBoard,
+  selectCurrentActiveBoard
+} from '~/redux/activeBoard/activeBoardSlice'
+import { useDispatch, useSelector } from 'react-redux'
+import { cloneDeep } from 'lodash'
 
-function Column({ column, createNewCard, deleteColumnDetails }) {
+function Column({ column }) {
+  const dispatch = useDispatch()
+  const board = useSelector(selectCurrentActiveBoard)
+
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({
     id: column._id,
     data: { ...column }
@@ -54,7 +64,7 @@ function Column({ column, createNewCard, deleteColumnDetails }) {
 
   const [newCardTitle, setNewCardTitle] = useState('')
 
-  const addNewCard = () => {
+  const addNewCard = async () => {
     if (!newCardTitle) {
       toast.error('Please enter Card Title!', { position: 'bottom-right' })
       return
@@ -66,10 +76,32 @@ function Column({ column, createNewCard, deleteColumnDetails }) {
       columnId: column._id
     }
 
-    //Goi len props function createNewColumn nam o component cha cao nhat (boards/_id.jsx)
-    //Va co the goi luon API o day la xong thay vi phai lan luot goi nguoc lai component cha phia tren
-    //Se su dung redux sau nay de code clean hon
-    createNewCard(newCardData)
+    // Goi API tao moi Card va lam lai du lieu State Board
+    const createdCard = await createNewCardAPI({
+      ...newCardData,
+      boardId: board._id
+    })
+
+    //Cap nhat state board
+    // Tu lam dung lai state data board thay vi goi lai api fetchBoardDetailsAPI
+
+    // Tuong tu ham createNewColumn nen cho nay dung cloneDeep
+    // const newBoard = { ...board }
+    const newBoard = cloneDeep(board)
+    const columnToUpdate = newBoard.columns.find(column => column._id === createdCard.columnId)
+    if (columnToUpdate) {
+      // Neu column rong: ban chat la chua 1 cai placeholder card
+      if (columnToUpdate.cards.some(card => card.FE_PlaceholderCard)) {
+        columnToUpdate.cards = [createdCard]
+        columnToUpdate.cardOrderIds = [createdCard._id]
+      } else {
+        // Nguoc lai column da co data thi push vao cuoi mang
+        columnToUpdate.cards.push(createdCard)
+        columnToUpdate.cardOrderIds.push(createdCard._id)
+      }
+    }
+    // setBoard(newBoard)
+    dispatch(updateCurrentActiveBoard(newBoard))
 
     // Dong trang thai them Card moi & Clear Input
     toggleOpenNewCardForm()
@@ -92,9 +124,19 @@ function Column({ column, createNewCard, deleteColumnDetails }) {
       // confirmationButtonProps: { variant: 'contained', color: 'secondary' },
       // cancellationButtonProps: { color: 'inherit' }
     }).then(() => {
-      // Gol len props function deleteColumnDetails nam o component cha cao nhat (boards/_id.jsx)
-      // Se su dung redux sau nay de code clean hon
-      deleteColumnDetails(column._id)
+      // Update cho chuan du lieu state board
+
+      // Tuong tu doan xu ly cho ham moveColumns ne khong anh huong redux toolkit Immutability gi o day ca
+      const newBoard = { ...board }
+      newBoard.columns = newBoard.columns.filter(c => c._id !== column._id)
+      newBoard.columnOrderIds = newBoard.columnOrderIds.filter(_id => _id !== column._id)
+      // setBoard(newBoard)
+      dispatch(updateCurrentActiveBoard(newBoard))
+      // Goi API xu ly BE
+      deleteColumnDetailsAPI(column._id).then(res => {
+        toast.success(res?.deleteResult)
+        console.log('res: ', res)
+      })
     }).catch(() => {})
   }
 
@@ -245,6 +287,7 @@ function Column({ column, createNewCard, deleteColumnDetails }) {
               />
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Button
+                  className="interceptor-loading"
                   onClick={addNewCard}
                   variant="contained" color="success" size="small"
                   sx={{

@@ -1,103 +1,52 @@
-import { useState, useEffect } from 'react'
+import { useEffect } from 'react'
 import Container from '@mui/material/Container'
 import AppBar from '~/components/AppBar/AppBar'
 import BoardBar from './BoardBar/BoardBar'
 import BoardContent from './BoardContent/BoardContent' // linh hoat neu cung cap thi dung ./, neu ../../ thi dung ~/
 // import { mockData } from '~/apis/mock-data'
-import { mapOrder } from '~/utils/sorts'
 import Box from '@mui/material/Box'
 import {
-  fetchBoardDetailsAPI,
-  createNewColumnAPI,
-  createNewCardAPI,
   updateBoardDetailsAPI,
   updateColumnDetailsAPI,
-  moveCardToDifferentColumnAPI,
-  deleteColumnDetailsAPI
+  moveCardToDifferentColumnAPI
 } from '~/apis'
-import { generatePlaceholderCard } from '~/utils/formatters'
-import { isEmpty } from 'lodash'
+import { cloneDeep } from 'lodash'
 import CircularProgress from '@mui/material/CircularProgress'
 import Typography from '@mui/material/Typography'
-import { toast } from 'react-toastify'
+import {
+  fetchBoardDetailsAPI,
+  updateCurrentActiveBoard,
+  selectCurrentActiveBoard
+} from '~/redux/activeBoard/activeBoardSlice'
+import { useParams } from 'react-router-dom'
+import { useDispatch, useSelector } from 'react-redux'
 
 function Board() {
-  const [board, setBoard] = useState(null)
+  const dispatch = useDispatch()
+  // Khong dung state cua component nua ma chuyen qua dung State cua redux
+  // const [board, setBoard] = useState(null)
+  const board = useSelector(selectCurrentActiveBoard)
+
+  const { boardId } = useParams()
+
 
   useEffect(() => {
-    // Tam thoi fix cung boardId, flow chuan thi ve sau se su dung react-router-dom de lay boardId tu url
-    const boardId = '6a144e0453a3d864b7b94634' //6a144e0453a3d864b7b94634
     // Call API
-    fetchBoardDetailsAPI(boardId).then(board => {
-
-      // Sap xep thu tu cac column o day trc khi dua du lieu truoc khi xuong cac component con
-      board.columns = mapOrder(board.columns, board.columnOrderIds, '_id')
-
-      board.columns.forEach(column => {
-        // Khi f5 trang web, can xu ly van de keo tha vao 1 column rong
-        if (isEmpty(column.cards)) {
-          column.cards = [generatePlaceholderCard(column)]
-          column.cardOrderIds = [generatePlaceholderCard(column)._id]
-        } else {
-          // Sap xep thu tu cac card o day trc khi dua du lieu truoc khi xuong cac component con
-          column.cards = mapOrder(column.cards, column.cardOrderIds, '_id')
-        }
-      })
-      setBoard(board)
-    })
-  }, [])
-
-  // Goi API tao moi Column va lam lai du lieu State Board
-  const createNewColumn = async (newColumnData) => {
-    const createdColumn = await createNewColumnAPI({
-      ...newColumnData,
-      boardId: board._id
-    })
-    // Khi tao column moi no se chua co card, can xu ly van de keo tha vao 1 column rong
-    createdColumn.cards = [generatePlaceholderCard(createdColumn)]
-    createdColumn.cardOrderIds = [generatePlaceholderCard(createdColumn)._id]
-
-    //Cap nhat state board
-    // FE phai tu lam dung lai state data board (thay vi goi lai api fetchBoardDetailsAPI)
-    const newBoard = { ...board }
-    newBoard.columns.push(createdColumn)
-    newBoard.columnOrderIds.push(createdColumn._id)
-    setBoard(newBoard)
-  }
-
-  // Goi API tao moi Card va lam lai du lieu State Board
-  const createNewCard = async (newCardData) => {
-    const createdCard = await createNewCardAPI({
-      ...newCardData,
-      boardId: board._id
-    })
-
-    //Cap nhat state board
-    const newBoard = { ...board }
-    const columnToUpdate = newBoard.columns.find(column => column._id === createdCard.columnId)
-    if (columnToUpdate) {
-      // Neu column rong: ban chat la chua 1 cai placeholder card
-      if (columnToUpdate.cards.some(card => card.FE_PlaceholderCard)) {
-        columnToUpdate.cards = [createdCard]
-        columnToUpdate.cardOrderIds = [createdCard._id]
-      } else {
-        // Nguoc lai column da co data thi push vao cuoi mang
-        columnToUpdate.cards.push(createdCard)
-        columnToUpdate.cardOrderIds.push(createdCard._id)
-      }
-    }
-    setBoard(newBoard)
-  }
+    dispatch(fetchBoardDetailsAPI(boardId))
+  }, [dispatch, boardId])
 
   // Goi API va xu ly khi keo tha Column xong xuoi
   // Chi can goi API de cap nhat mang columnOrderIds cua board co no (thay doi vi tri trong mang)
   const moveColumns = (dndOrderedColumns) => {
     // cap nhat lai cho chuan du lieu state Board
     const dndOrderedColumnsIds = dndOrderedColumns.map(c => c._id)
+
+    // Truong hop nay dung Spread Operator nay thi ko sao vi o day khong dun push nhu o tren lam thay doi truc tiep kieu mo rong mang, ma chi gan lai toan bo gia tri columns va columnOrderIds bang 2 mang moi
     const newBoard = { ...board }
     newBoard.columns = dndOrderedColumns
     newBoard.columnOrderIds = dndOrderedColumnsIds
-    setBoard(newBoard)
+    // setBoard(newBoard)
+    dispatch(updateCurrentActiveBoard(newBoard))
 
     // Goi API update Board
     updateBoardDetailsAPI(newBoard._id, { columnOrderIds: dndOrderedColumnsIds })
@@ -106,13 +55,18 @@ function Board() {
   // Khi di chuyen card trong cung column: Chi can goi API de cap nhat mang cardOrderIds cua column co no (thay doi vi tri trong mang)
   const moveCardInTheSameColumn = (dndOrderedCards, dndOrderedCardsIds, columnId) => {
     // cap nhat lai cho chuan du lieu state Board
-    const newBoard = { ...board }
+
+    // Cannot assign to read only property 'cards' of object
+    // Truong hop Immutability o day da dung toi gia tri cards dang duoc coi la read only - (nested object - can thiep sau du lieu)
+    // const newBoard = { ...board }
+    const newBoard = cloneDeep(board)
     const columnToUpdate = newBoard.columns.find(column => column._id === columnId)
     if (columnToUpdate) {
       columnToUpdate.cards = dndOrderedCards
       columnToUpdate.cardOrderIds = dndOrderedCardsIds
     }
-    setBoard(newBoard)
+    // setBoard(newBoard)
+    dispatch(updateCurrentActiveBoard(newBoard))
     // Goi API update Column
     updateColumnDetailsAPI(columnId, { cardOrderIds: dndOrderedCardsIds })
   }
@@ -124,10 +78,13 @@ function Board() {
   const moveCardToDifferentColumn = (currentCardId, prevColumnId, nextColumnId, dndOrderedColumns) => {
     // cap nhat lai cho chuan du lieu state Board
     const dndOrderedColumnsIds = dndOrderedColumns.map(c => c._id)
+
+    // Tuong tu dpan xu ly cho ham moveColumns ne khong anh huong redux toolkit Immutability gi o day ca
     const newBoard = { ...board }
     newBoard.columns = dndOrderedColumns
     newBoard.columnOrderIds = dndOrderedColumnsIds
-    setBoard(newBoard)
+    // setBoard(newBoard)
+    dispatch(updateCurrentActiveBoard(newBoard))
 
     // Goi API xu ly BE
     let prevCardOrderIds = dndOrderedColumns.find(c => c._id === prevColumnId)?.cardOrderIds
@@ -143,20 +100,6 @@ function Board() {
     })
   }
 
-  // Xu ly xoa 1 column va card ben trong no
-  const deleteColumnDetails = (columnId) => {
-    // Update cho chuan du lieu state board
-    const newBoard = { ...board }
-    newBoard.columns = newBoard.columns.filter(c => c._id !== columnId)
-    newBoard.columnOrderIds = newBoard.columnOrderIds.filter(_id => _id !== columnId)
-    setBoard(newBoard)
-    // Goi API xu ly BE
-    deleteColumnDetailsAPI(columnId).then(res => {
-      toast.success(res?.deleteResult)
-      console.log('res: ', res)
-    })
-  }
-
   if (!board) {
     return (
       <Box sx={{
@@ -167,7 +110,7 @@ function Board() {
         width: '100vw',
         height: '100vw'
       }}>
-        <CircularProgress/>
+        <CircularProgress />
         <Typography>Loading Board ...</Typography>
       </Box>
     )
@@ -179,13 +122,10 @@ function Board() {
       <BoardBar board={board} />
       <BoardContent
         board={board}
-
-        createNewColumn={createNewColumn}
-        createNewCard={createNewCard}
+        // 3 truong hop move giu nguyen de code xu ly keo tha o phan BoardContent khong bi qua dai va mat kiem soat khi doc code
         moveColumns={moveColumns}
         moveCardInTheSameColumn={moveCardInTheSameColumn}
         moveCardToDifferentColumn={moveCardToDifferentColumn}
-        deleteColumnDetails={deleteColumnDetails}
       />
     </Container>
   )
